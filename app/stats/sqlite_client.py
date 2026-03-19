@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.sqlite.client import SQLiteClient
 
 
@@ -12,12 +14,19 @@ class StatsSQLiteClient:
         self.db_client.execute(
             """
             CREATE TABLE IF NOT EXISTS orders (
-                id str PRIMARY KEY,
-                figi str,
+                id TEXT PRIMARY KEY,
+                figi TEXT,
                 direction TEXT,
                 price REAL,
                 quantity INTEGER,
-                status TEXT
+                status TEXT,
+                order_datetime DATETIME,
+                instrument_name TEXT,
+                average_position_price REAL,
+                executed_commission REAL,
+                initial_commission REAL,
+                executed_order_price REAL,
+                total_order_amount REAL
             )
             """
         )
@@ -30,10 +39,19 @@ class StatsSQLiteClient:
         price: float,
         quantity: int,
         status: str,
+        order_datetime: datetime = None,
+        instrument_name: str = None,
+        average_position_price: float = None,
+        executed_commission: float = None,
+        initial_commission: float = None,
+        executed_order_price: float = None,
+        total_order_amount: float = None,
     ):
+        if order_datetime is None:
+            order_datetime = datetime.now()
         self.db_client.execute_insert(
-            "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?)",
-            (order_id, figi, order_direction, price, quantity, status),
+            "INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (order_id, figi, order_direction, price, quantity, status, order_datetime.isoformat(), instrument_name, average_position_price, executed_commission, initial_commission, executed_order_price, total_order_amount),
         )
 
     def get_orders(self):

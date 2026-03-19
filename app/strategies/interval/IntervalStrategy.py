@@ -350,13 +350,13 @@ class IntervalStrategy(BaseStrategy):
         logger.info(f"Take profit check. Last price={last_price} Target price={(self.corridor.top + self.corridor.bottom) / 2}  {self.instrument_info.name}")
         if position_price != 0:
             if quantity > 0:
-                target_price = position_price * 1.005 #(self.corridor.top + self.corridor.bottom) / 2
+                target_price = position_price * 1.001 #(self.corridor.top + self.corridor.bottom) / 2
                 # Long position: take profit when price reaches or exceeds target
                 if last_price >= target_price:
                     should_close = True
                     direction = ORDER_DIRECTION_SELL
             elif quantity < 0:
-                target_price = position_price / 1.005 #(self.corridor.top + self.corridor.bottom) / 2
+                target_price = position_price / 1.001 #(self.corridor.top + self.corridor.bottom) / 2
                 # Short position: take profit when price reaches or falls below target
                 if last_price <= target_price: 
                     should_close = True
