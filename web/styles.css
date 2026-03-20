@@ -332,3 +332,50 @@ tbody tr:last-child td {
 .stats-table tbody tr:last-child td {
     border-bottom: none;
 }
+
+/* Accordion styles for daily trades */
+.accordion-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.accordion-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    transition: background-color 0.3s ease;
+}
+
+.accordion-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.accordion-icon {
+    font-size: 1rem;
+    margin-right: 10px;
+    color: #667eea;
+    transition: transform 0.3s ease;
+}
+
+.accordion-date {
+    flex-grow: 1;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #495057;
+}
+
+.accordion-summary {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.accordion-content {
+    padding: 0;
+    border-top: 1px solid #e9ecef;
+}
