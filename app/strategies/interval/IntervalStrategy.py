@@ -83,7 +83,7 @@ class IntervalStrategy(BaseStrategy):
         lower_percentile = (1 - self.config.interval_size) / 2 * 100
         corridor = list(np.percentile(values, [lower_percentile, 100 - lower_percentile]))
         logger.debug(
-            f"Corridor: {corridor}. days_back_to_consider={self.config.days_back_to_consider} "
+            f"Corridor: [\033[93m{corridor[0]:.2f}\033[0m, \033[93m{corridor[1]:.2f}\033[0m]. days_back_to_consider={self.config.days_back_to_consider} "
             f"figi={self.instrument_info.name}"
         )
         self.corridor = Corridor(bottom=corridor[0], top=corridor[1])
@@ -272,7 +272,7 @@ class IntervalStrategy(BaseStrategy):
         
         should_close = False
         direction = None
-        logger.info(f"Stop loss check. Last price={last_price}. Position price={position_price}. Quantity={quantity}. Stop long price {position_price - position_price * self.config.stop_loss_percent}. Stop short price {position_price + position_price * self.config.stop_loss_percent}. {self.instrument_info.name}")
+        logger.info(f"Stop loss check. Last price={last_price}. Position price={position_price}. Quantity={quantity}. Stop long price {position_price - position_price * self.config.stop_loss_percent:.4f}. Stop short price {position_price + position_price * self.config.stop_loss_percent:.4f}. Corridor: [\033[93m{self.corridor.bottom:.2f}\033[0m, \033[93m{self.corridor.top:.2f}\033[0m]. {self.instrument_info.name}")
         if position_price != 0:
             if quantity > 0:
                 # Long position: stop loss when price drops
@@ -347,16 +347,17 @@ class IntervalStrategy(BaseStrategy):
         should_close = False
         direction = None
         
-        logger.info(f"Take profit check. Last price={last_price} Target price={(self.corridor.top + self.corridor.bottom) / 2}  {self.instrument_info.name}")
+        corridor_midpoint = (self.corridor.top + self.corridor.bottom) / 2
+        logger.info(f"Take profit check. Last price={last_price} Target price=(\033[93m{self.corridor.top:.2f}\033[0m + \033[93m{self.corridor.bottom:.2f}\033[0m) / 2 = {corridor_midpoint:.4f}  {self.instrument_info.name}")
         if position_price != 0:
             if quantity > 0:
-                target_price = position_price * 1.001 #(self.corridor.top + self.corridor.bottom) / 2
+                target_price = position_price * 1.0044 #corridor_midpoint
                 # Long position: take profit when price reaches or exceeds target
                 if last_price >= target_price:
                     should_close = True
                     direction = ORDER_DIRECTION_SELL
             elif quantity < 0:
-                target_price = position_price / 1.001 #(self.corridor.top + self.corridor.bottom) / 2
+                target_price = position_price / 1.0044 #corridor_midpoint
                 # Short position: take profit when price reaches or falls below target
                 if last_price <= target_price: 
                     should_close = True
@@ -433,9 +434,9 @@ class IntervalStrategy(BaseStrategy):
                 #logger.info(moscow_hour)
                 #logger.info(moscow_minute)
                     
-                if moscow_hour >= 23:
+                if moscow_hour >= 22:
 
-                    logger.info("Time to close all positions (23:00 Moscow time)")
+                    logger.info("Time to close all positions (22:00 Moscow time)")
                     await self.close_all_positions()
                     # Reset take profit price when closing positions at end of day
                     
@@ -454,19 +455,19 @@ class IntervalStrategy(BaseStrategy):
                             continue
 
                         last_price = await self.get_last_price()
-                        logger.debug(f"Last price: {last_price}, figi={self.instrument_info.name}")
+                        logger.debug(f"Last price: {last_price:.2f}, Corridor: [\033[93m{self.corridor.bottom:.2f}\033[0m, \033[93m{self.corridor.top:.2f}\033[0m], figi={self.instrument_info.name}")
                                         
                         
                         if last_price >= self.corridor.top:
                             logger.debug(
                                 f"Last price {last_price} is higher than top corridor border "
-                                f"{self.corridor.top}. {self.instrument_info.name}"
+                                f"\033[93m{self.corridor.top:.2f}\033[0m. {self.instrument_info.name}"
                             )
                             await self.handle_corridor_crossing_top(last_price=last_price)
                         elif last_price <= self.corridor.bottom:
                             logger.debug(
                                 f"Last price {last_price} is lower than bottom corridor border "
-                                f"{self.corridor.bottom}. {self.instrument_info.name}"
+                                f"\033[93m{self.corridor.bottom:.2f}\033[0m. {self.instrument_info.name}"
                             )
                             await self.handle_corridor_crossing_bottom(last_price=last_price)
 
