@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сделки - LMD-T-bot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Список сделок</h1>
+            <div id="status">Загрузка данных...</div>
+        </header>
+        
+        <main>
+            <table id="trades-table">
+                <thead>
+                    <tr>
+                        <th>ID Заказа</th>
+                        <th>Название</th>
+                        <th>Направление</th>
+                        <th>Количество</th>
+                        <th>Время заказа</th>
+                        <th>Initial Commission</th>
+                        <th>Общая сумма</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-body">
+                    <!-- Trades will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div id="no-data" class="hidden">Нет данных о сделках в базе</div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
