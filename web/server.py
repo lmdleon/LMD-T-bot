@@ -125,6 +125,96 @@ def api_stats():
         }), 500
 
 
+@app.route('/api/stats/daily')
+def api_stats_daily():
+    """API endpoint to get daily trade statistics by asset."""
+    try:
+        db = get_db_client()
+        orders = db.get_orders()
+        
+        if not orders:
+            return jsonify({
+                'success': True,
+                'daily_stats': [],
+                'total_summary': {
+                    'total_trades': 0,
+                    'total_commissions': 0,
+                    'total_amounts': 0,
+                    'total_result': 0
+                },
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        # Group orders by date and instrument
+        daily_stats = {}
+        
+        for order in orders:
+            order_id, figi, direction, price, quantity, status, order_datetime, instrument_name, average_position_price, executed_commission, initial_commission, executed_order_price, total_order_amount = order
+            
+            # Extract date from datetime string
+            if order_datetime:
+                date_str = order_datetime.split('T')[0]  # Get YYYY-MM-DD part
+            else:
+                continue
+            
+            # Calculate amount: buy = -price*quantity, sell = +price*quantity
+            amount = total_order_amount
+            if direction == '1':  # Buy
+                amount = -amount
+            
+            key = (date_str, figi)
+            
+            if key not in daily_stats:
+                daily_stats[key] = {
+                    'date': date_str,
+                    'figi': figi,
+                    'instrument_name': instrument_name or figi,
+                    'trade_count': 0,
+                    'total_commissions': 0,
+                    'total_amounts': 0
+                }
+            
+            daily_stats[key]['trade_count'] += 1
+            daily_stats[key]['total_commissions'] += (initial_commission or 0)
+            daily_stats[key]['total_amounts'] += amount
+        
+        # Filter daily_stats: remove items with odd trade_count
+        keys_to_remove = [key for key, stat in daily_stats.items() if stat['trade_count'] % 2 != 0]
+        for key in keys_to_remove:
+            del daily_stats[key]
+        
+        # Convert to list and calculate result
+        stats_list = []
+        for key, stat in daily_stats.items():
+            stat['result'] = stat['total_amounts'] - stat['total_commissions']
+            stats_list.append(stat)
+        
+        # Sort by date descending
+        stats_list.sort(key=lambda x: x['date'], reverse=True)
+        
+        # Calculate total summary
+        total_summary = {
+            'total_trades': sum(s['trade_count'] for s in stats_list),
+            'total_commissions': round(sum(s['total_commissions'] for s in stats_list), 2),
+            'total_amounts': round(sum(s['total_amounts'] for s in stats_list), 2),
+            'total_result': round(sum(s['result'] for s in stats_list), 2)
+        }
+        
+        return jsonify({
+            'success': True,
+            'daily_stats': stats_list,
+            'total_summary': total_summary,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
 if __name__ == '__main__':
     import argparse
     
