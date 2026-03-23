@@ -216,8 +216,8 @@ class IntervalStrategy(BaseStrategy):
         self.stop_loss_triggered_today.clear()
         # Clear persisted triggers in database for today
         today = date.today()
-        self.stop_loss_db.clear_triggers_for_date(today)
-        logger.debug(f"Cleared stop loss triggers from DB for date {today}")
+        #self.stop_loss_db.clear_triggers_for_date(today)
+        #logger.debug(f"Cleared stop loss triggers from DB for date {today}")
             
         if position_quantity > 0:
             quantity_to_sell = position_quantity
