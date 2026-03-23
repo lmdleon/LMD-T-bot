@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusElement = document.getElementById('status');
     const statsContainer = document.getElementById('daily-stats-container');
     const noDataElement = document.getElementById('no-data');
+    const stopLossSection = document.getElementById('stop-loss-section');
+    const stopLossContainer = document.getElementById('stop-loss-container');
+    const noStopLossDataElement = document.getElementById('no-stop-loss-data');
     
     // Format date to readable string
     function formatDate(dateString) {
@@ -38,17 +41,110 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Toggle accordion item
     function toggleAccordion(item) {
-        const content = item.querySelector('.accordion-content');
-        const icon = item.querySelector('.accordion-icon');
+        const content = item.querySelector('.accordion-content, .stop-loss-accordion-content');
+        const icon = item.querySelector('.accordion-icon, .stop-loss-accordion-icon');
         
-        if (content.style.display === 'none' || !content.style.display) {
+        if (content && (content.style.display === 'none' || !content.style.display)) {
             content.style.display = 'block';
-            icon.textContent = '▼';
+            if (icon) icon.textContent = '▼';
             item.classList.add('active');
-        } else {
+        } else if (content) {
             content.style.display = 'none';
-            icon.textContent = '▶';
+            if (icon) icon.textContent = '▶';
             item.classList.remove('active');
+        }
+    }
+    
+    // Fetch stop loss triggers from API
+    async function fetchStopLossTriggers() {
+        try {
+            const response = await fetch('/api/stop-loss/daily');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Clear container
+            stopLossContainer.innerHTML = '';
+            
+            if (!data.daily_triggers || data.daily_triggers.length === 0) {
+                noStopLossDataElement.classList.remove('hidden');
+                stopLossSection.style.display = 'none';
+                return;
+            }
+            
+            noStopLossDataElement.classList.add('hidden');
+            stopLossSection.style.display = 'block';
+            
+            // Update total summary
+            document.getElementById('stop-loss-total-dates').textContent = data.total_summary.total_dates;
+            document.getElementById('stop-loss-total-triggers').textContent = data.total_summary.total_triggers;
+            
+            // Render accordion for each date with triggers
+            const dates = data.daily_triggers.map(t => t.date).sort((a, b) => b.localeCompare(a));
+            
+            dates.forEach(date => {
+                const triggersForDate = data.daily_triggers.find(t => t.date === date);
+                
+                if (!triggersForDate) return;
+                
+                // Create accordion header
+                const accordionHeader = document.createElement('div');
+                accordionHeader.className = 'stop-loss-accordion-header';
+                
+                accordionHeader.innerHTML = `
+                    <span class="stop-loss-accordion-icon">▶</span>
+                    <span class="stop-loss-accordion-date">${formatDate(date)}</span>
+                    <span class="stop-loss-accordion-summary">
+                        Сработало стоп-лоссов: ${triggersForDate.trigger_count}
+                    </span>
+                `;
+                
+                // Create accordion content
+                const accordionContent = document.createElement('div');
+                accordionContent.className = 'stop-loss-accordion-content';
+                accordionContent.style.display = 'none';
+                
+                let itemsHtml = '';
+                triggersForDate.figis.forEach(figi => {
+                    itemsHtml += `
+                        <tr>
+                            <td><code>${figi}</code></td>
+                            <td>Сработал стоп-лосс</td>
+                        </tr>
+                    `;
+                });
+                
+                accordionContent.innerHTML = `
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>FIGI</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                `;
+                
+                // Create accordion item container
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'stop-loss-accordion-item';
+                accordionItem.appendChild(accordionHeader);
+                accordionItem.appendChild(accordionContent);
+                
+                // Add click event to toggle
+                accordionHeader.addEventListener('click', () => toggleAccordion(accordionItem));
+                
+                stopLossContainer.appendChild(accordionItem);
+            });
+            
+        } catch (error) {
+            console.error('Error fetching stop loss triggers:', error);
         }
     }
     
@@ -76,11 +172,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!data.daily_stats || data.daily_stats.length === 0) {
                 noDataElement.classList.remove('hidden');
                 statusElement.textContent = 'Нет данных в базе';
-                return;
+            } else {
+                noDataElement.classList.add('hidden');
+                statusElement.textContent = `Загружено записей: ${data.daily_stats.length}`;
             }
-            
-            noDataElement.classList.add('hidden');
-            statusElement.textContent = `Загружено записей: ${data.daily_stats.length}`;
             
             // Group stats by date
             const groupedStats = {};
@@ -186,11 +281,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching daily stats:', error);
             statusElement.textContent = `Ошибка загрузки: ${error.message}`;
         }
+        
+        // Also fetch stop loss triggers
+        await fetchStopLossTriggers();
     }
     
     // Initial fetch
     fetchDailyStats();
     
     // Auto-refresh every 30 seconds
-    setInterval(fetchDailyStats, 30000);
+    setInterval(async () => {
+        await fetchDailyStats();
+    }, 30000);
 });

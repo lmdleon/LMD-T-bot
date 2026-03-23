@@ -333,8 +333,27 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Accordion styles for daily trades */
-.accordion-item {
+/* Stop Loss Styles */
+#stop-loss-section {
+    margin-bottom: 30px;
+}
+
+#stop-loss-section h2 {
+    color: #721c24;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.stop-loss-summary {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.stop-loss-summary .summary-value {
+    color: white;
+}
+
+/* Stop Loss Accordion Styles */
+.stop-loss-accordion-item {
     border: 1px solid #e9ecef;
     border-radius: 8px;
     margin-bottom: 15px;
@@ -343,39 +362,56 @@ tbody tr:last-child td {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.accordion-header {
+.stop-loss-accordion-header {
     display: flex;
     align-items: center;
     padding: 15px 20px;
     cursor: pointer;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, #fff5f7 0%, #ffe8ed 100%);
     transition: background-color 0.3s ease;
 }
 
-.accordion-header:hover {
-    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+.stop-loss-accordion-header:hover {
+    background: linear-gradient(135deg, #ffe8ed 0%, #ffdee4 100%);
 }
 
-.accordion-icon {
+.stop-loss-accordion-icon {
     font-size: 1rem;
     margin-right: 10px;
-    color: #667eea;
+    color: #dc3545;
     transition: transform 0.3s ease;
 }
 
-.accordion-date {
+.stop-loss-accordion-date {
     flex-grow: 1;
     font-weight: 600;
     font-size: 1.1rem;
     color: #495057;
 }
 
-.accordion-summary {
+.stop-loss-accordion-summary {
     font-size: 0.9rem;
-    color: #6c757d;
+    color: #dc3545;
+    font-weight: 600;
 }
 
-.accordion-content {
+.stop-loss-accordion-content {
     padding: 0;
     border-top: 1px solid #e9ecef;
+}
+
+.stop-loss-triggers-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 15px;
+}
+
+.stop-loss-trigger-tag {
+    background-color: #dc3545;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-family: monospace;
 }

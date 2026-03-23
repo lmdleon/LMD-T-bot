@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, time as dt_time
+from datetime import date, timedelta
 from typing import List, Optional, Set
 from uuid import uuid4
 
@@ -18,6 +18,7 @@ from app.client import client
 from app.settings import settings
 from app.stats.handler import StatsHandler
 from app.strategies.interval.models import IntervalStrategyConfig, Corridor
+from app.strategies.interval.sqlite_client import StopLossSQLiteClient
 from app.strategies.base import BaseStrategy
 from app.strategies.models import StrategyName
 from app.utils.portfolio import get_position, get_order
@@ -46,8 +47,20 @@ class IntervalStrategy(BaseStrategy):
         self.instrument_info: Optional[Instrument] = None
         self.config: IntervalStrategyConfig = IntervalStrategyConfig(**kwargs)
         self.stats_handler = StatsHandler(StrategyName.INTERVAL, client)
+        self.stop_loss_db = StopLossSQLiteClient(db_name="stats.db")
         self.stop_loss_triggered_today: Set[str] = set()
-     
+        # Load stop loss triggers from database for today
+        self._load_stop_loss_triggers_from_db()
+
+    def _load_stop_loss_triggers_from_db(self) -> None:
+        """
+        Load stop loss triggers from database for today and populate the in-memory set.
+        """
+        today = date.today()
+        db_triggers = self.stop_loss_db.get_triggers_for_date(today)
+        self.stop_loss_triggered_today.update(db_triggers)
+        logger.debug(f"Loaded {len(db_triggers)} stop loss triggers from DB for today")
+
     async def get_historical_data(self) -> List[HistoricCandle]:
         """
         Gets historical data for the instrument. Returns list of candles.
@@ -201,6 +214,10 @@ class IntervalStrategy(BaseStrategy):
         # Clear stop_loss_triggered_today set at the end of day (23:00 Moscow time)
         logger.info(f"Clearing stop_loss_triggered_today set for {self.instrument_info.name}")
         self.stop_loss_triggered_today.clear()
+        # Clear persisted triggers in database for today
+        today = date.today()
+        self.stop_loss_db.clear_triggers_for_date(today)
+        logger.debug(f"Cleared stop loss triggers from DB for date {today}")
             
         if position_quantity > 0:
             quantity_to_sell = position_quantity
@@ -287,9 +304,13 @@ class IntervalStrategy(BaseStrategy):
             
         if not should_close:
             return
-            
+
         # Add figi to stop_loss_triggered_today set to prevent re-processing
         self.stop_loss_triggered_today.add(self.figi)
+        # Persist to database
+        today = date.today()
+        self.stop_loss_db.add_trigger(self.figi, today)
+        logger.debug(f"Persisted stop loss trigger for {self.figi} to DB for date {today}")
         
         # Calculate profit/loss without commission
         if quantity > 0:
@@ -477,7 +498,14 @@ class IntervalStrategy(BaseStrategy):
                 logger.error(f"Client error {are}")
             
             await asyncio.sleep(self.config.check_interval)
-            
+
+    async def stop(self) -> None:
+        """
+        Cleanup resources when strategy is stopping.
+        Closes the database connection for stop loss triggers.
+        """
+        self.stop_loss_db.close()
+        logger.debug(f"Closed stop loss DB connection for {self.figi}")
 
     async def start(self):
         if self.account_id is None:

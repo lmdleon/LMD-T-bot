@@ -18,33 +18,61 @@
         </header>
         
         <main>
-            <div id="daily-stats-container">
-                <!-- Daily stats will be inserted here as collapsible blocks -->
-            </div>
-            
-            <div class="summary-card">
-                <h3>Итог за все время</h3>
-                <div class="summary-values">
-                    <div>
-                        <span class="summary-label">Всего сделок:</span>
-                        <span id="total-trades" class="summary-value">0</span>
-                    </div>
-                    <div>
-                        <span class="summary-label">Сумма комиссий:</span>
-                        <span id="total-commissions" class="summary-value">0</span>
-                    </div>
-                    <div>
-                        <span class="summary-label">Результат без учета комиссии:</span>
-                        <span id="total-amounts" class="summary-value">0</span>
-                    </div>
-                    <div>
-                        <span class="summary-label">Результат:</span>
-                        <span id="total-result" class="summary-value result-positive">0</span>
+            <!-- Stop Loss Triggers Section -->
+            <section id="stop-loss-section">
+                <h2>Сработавшие стоп-лоссы</h2>
+                <div class="summary-card stop-loss-summary">
+                    <h3>Итог по стоп-лоссам</h3>
+                    <div class="summary-values">
+                        <div>
+                            <span class="summary-label">Всего дней с срабатываниями:</span>
+                            <span id="stop-loss-total-dates" class="summary-value">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-label">Всего срабатываний:</span>
+                            <span id="stop-loss-total-triggers" class="summary-value">0</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+                <div id="stop-loss-container">
+                    <!-- Stop loss accordion items will be inserted here -->
+                </div>
+                <div id="no-stop-loss-data" class="hidden">Нет данных о сработавших стоп-лоссах</div>
+            </section>
             
-            <div id="no-data" class="hidden">Нет данных о сделках в базе</div>
+            <hr>
+            
+            <!-- Daily Stats Section -->
+            <section id="daily-stats-section">
+                <h2>Статистика по сделкам</h2>
+                <div id="daily-stats-container">
+                    <!-- Daily stats will be inserted here as collapsible blocks -->
+                </div>
+                
+                <div class="summary-card">
+                    <h3>Итог за все время</h3>
+                    <div class="summary-values">
+                        <div>
+                            <span class="summary-label">Всего сделок:</span>
+                            <span id="total-trades" class="summary-value">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-label">Сумма комиссий:</span>
+                            <span id="total-commissions" class="summary-value">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-label">Результат без учета комиссии:</span>
+                            <span id="total-amounts" class="summary-value">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-label">Результат:</span>
+                            <span id="total-result" class="summary-value result-positive">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="no-data" class="hidden">Нет данных о сделках в базе</div>
+            </section>
         </main>
     </div>
     

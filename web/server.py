@@ -7,12 +7,13 @@ Run this file to start the web interface: `python web/server.py`
 import os
 import sys
 from datetime import datetime
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # Add app directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.stats.sqlite_client import StatsSQLiteClient
+from app.strategies.interval.sqlite_client import StopLossSQLiteClient
 
 
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -24,6 +25,11 @@ DB_PATH = 'stats.db'
 def get_db_client():
     """Get database client instance."""
     return StatsSQLiteClient(DB_PATH)
+
+
+def get_stop_loss_client():
+    """Get stop loss database client instance."""
+    return StopLossSQLiteClient(DB_PATH)
 
 
 @app.route('/')
@@ -204,6 +210,112 @@ def api_stats_daily():
             'success': True,
             'daily_stats': stats_list,
             'total_summary': total_summary,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@app.route('/api/stop-loss/daily')
+def api_stop_loss_daily():
+    """API endpoint to get daily stop loss triggers by asset."""
+    try:
+        db = get_stop_loss_client()
+        
+        # Get all unique dates from the database
+        rows = db.db_client.execute_select(
+            "SELECT DISTINCT trigger_date FROM stop_loss_triggers ORDER BY trigger_date DESC"
+        )
+        
+        dates = [row[0] for row in rows]
+        
+        if not dates:
+            return jsonify({
+                'success': True,
+                'daily_triggers': [],
+                'total_summary': {
+                    'total_dates': 0,
+                    'total_triggers': 0
+                },
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        # Get instrument names from orders table (most recent name for each figi)
+        order_rows = db.db_client.execute_select(
+            "SELECT DISTINCT figi, instrument_name FROM orders WHERE instrument_name IS NOT NULL AND instrument_name != ''"
+        )
+        figi_to_name = {row[0]: row[1] for row in order_rows}
+        
+        # Get triggers for each date
+        daily_triggers = []
+        total_triggers_count = 0
+        
+        for date_str in dates:
+            figis = db.get_triggers_for_date(datetime.strptime(date_str, '%Y-%m-%d').date())
+            total_triggers_count += len(figis)
+            
+            # Build list of triggers with figi and instrument name
+            triggers_list = []
+            for figi in figis:
+                triggers_list.append({
+                    'figi': figi,
+                    'instrument_name': figi_to_name.get(figi, figi)
+                })
+            
+            daily_triggers.append({
+                'date': date_str,
+                'triggers': triggers_list,
+                'trigger_count': len(figis)
+            })
+        
+        return jsonify({
+            'success': True,
+            'daily_triggers': daily_triggers,
+            'total_summary': {
+                'total_dates': len(dates),
+                'total_triggers': total_triggers_count
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@app.route('/api/stop-loss/triggers')
+def api_stop_loss_triggers():
+    """API endpoint to get stop loss triggers for a specific date."""
+    try:
+        db = get_stop_loss_client()
+        
+        # Get date from query parameter
+        date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+        
+        try:
+            trigger_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date format. Use YYYY-MM-DD',
+                'timestamp': datetime.now().isoformat()
+            }), 400
+        
+        figis = db.get_triggers_for_date(trigger_date)
+        
+        return jsonify({
+            'success': True,
+            'date': date_str,
+            'figis': figis,
+            'trigger_count': len(figis),
             'timestamp': datetime.now().isoformat()
         })
         
