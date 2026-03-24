@@ -120,37 +120,43 @@ class IntervalStrategy(BaseStrategy):
         :param last_price: last price of the instrument
         """
         position_quantity = await self.get_position_quantity()
-        if abs(position_quantity) < self.config.quantity_limit or position_quantity > 0:
-            quantity_to_sell = self.config.quantity_limit + position_quantity
-            logger.info(
-                f"\033[91mSelling {quantity_to_sell} shares. Last price={last_price} {self.instrument_info.name}\033[0m"
-            )
-            try:
-                quantity = quantity_to_sell / self.instrument_info.lot
-                if not is_quantity_valid(quantity):
-                    raise ValueError(f"Invalid quantity for posting an order. quantity={quantity}")
-                posted_order = await client.post_order(
-                    order_id=str(uuid4()),
-                    figi=self.figi,
-                    direction=ORDER_DIRECTION_SELL,
-                    quantity=int(quantity),
-                    order_type=ORDER_TYPE_MARKET,
-                    account_id=self.account_id,
+        if self.config.position_direction in [1, 2]:
+        
+            if abs(position_quantity) < self.config.quantity_limit or position_quantity > 0:
+                quantity_to_sell = self.config.quantity_limit + position_quantity
+                logger.info(
+                    f"\033[91mSelling {quantity_to_sell} shares. Last price={last_price} {self.instrument_info.name}\033[0m"
                 )
-            except Exception as e:
-                logger.error(f"Failed to post sell order. {self.instrument_info.name}. {e}")
-                return
-            asyncio.create_task(
-                self.stats_handler.handle_new_order(
-                    order_id=posted_order.order_id, account_id=self.account_id
+                try:
+                    quantity = quantity_to_sell / self.instrument_info.lot
+                    if not is_quantity_valid(quantity):
+                        raise ValueError(f"Invalid quantity for posting an order. quantity={quantity}")
+                    posted_order = await client.post_order(
+                        order_id=str(uuid4()),
+                        figi=self.figi,
+                        direction=ORDER_DIRECTION_SELL,
+                        quantity=int(quantity),
+                        order_type=ORDER_TYPE_MARKET,
+                        account_id=self.account_id,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to post sell order. {self.instrument_info.name}. {e}")
+                    return
+                asyncio.create_task(
+                    self.stats_handler.handle_new_order(
+                        order_id=posted_order.order_id, account_id=self.account_id
+                    )
                 )
-            )
-            # Calculate take profit level after entering position
-           
-        else: 
+                # Calculate take profit level after entering position
+            
+            else: 
+                logger.info(
+                    f"Already have a position {position_quantity} shares. {self.instrument_info.name}"
+                )
+        else:
             logger.info(
-                f"Already have a position {position_quantity} shares. {self.instrument_info.name}"
-            )
+                f"SHORT position not allowed. {self.instrument_info.name}"
+            )         
     async def handle_corridor_crossing_bottom(self, last_price: float) -> None:
         """
         This method is called when last price is lower than bottom corridor border.
@@ -159,38 +165,43 @@ class IntervalStrategy(BaseStrategy):
         :param last_price: last price of the instrument
         """
         position_quantity = await self.get_position_quantity()
-        if abs(position_quantity) < self.config.quantity_limit or position_quantity < 0:
-            quantity_to_buy = self.config.quantity_limit - position_quantity
-            logger.info(
-                f"\033[92mBuying {quantity_to_buy} shares. Last price={last_price} {self.instrument_info.name}\033[0m"
-            )
-            try:
-                quantity = quantity_to_buy / self.instrument_info.lot
-                if not is_quantity_valid(quantity):
-                    raise ValueError(f"Invalid quantity for posting an order. quantity={quantity}")
-                posted_order = await client.post_order(
-                    order_id=str(uuid4()),
-                    figi=self.figi,
-                    direction=ORDER_DIRECTION_BUY,
-                    quantity=int(quantity),
-                    order_type=ORDER_TYPE_MARKET,
-                    account_id=self.account_id,
-                )
-            except Exception as e:
-                logger.error(f"Failed to post buy order. {self.instrument_info.name}. {e}")
-                return
-            asyncio.create_task(
-                self.stats_handler.handle_new_order(
-                    order_id=posted_order.order_id, account_id=self.account_id
-                )
-            )
-            # Calculate take profit level after entering position
+        if self.config.position_direction in [2, 3]:
         
-        else: 
+            if abs(position_quantity) < self.config.quantity_limit or position_quantity < 0:
+                quantity_to_buy = self.config.quantity_limit - position_quantity
+                logger.info(
+                    f"\033[92mBuying {quantity_to_buy} shares. Last price={last_price} {self.instrument_info.name}\033[0m"
+                )
+                try:
+                    quantity = quantity_to_buy / self.instrument_info.lot
+                    if not is_quantity_valid(quantity):
+                        raise ValueError(f"Invalid quantity for posting an order. quantity={quantity}")
+                    posted_order = await client.post_order(
+                        order_id=str(uuid4()),
+                        figi=self.figi,
+                        direction=ORDER_DIRECTION_BUY,
+                        quantity=int(quantity),
+                        order_type=ORDER_TYPE_MARKET,
+                        account_id=self.account_id,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to post buy order. {self.instrument_info.name}. {e}")
+                    return
+                asyncio.create_task(
+                    self.stats_handler.handle_new_order(
+                        order_id=posted_order.order_id, account_id=self.account_id
+                    )
+                )
+                # Calculate take profit level after entering position
+            
+            else: 
+                logger.info(
+                    f"Already have a position {position_quantity} shares. {self.instrument_info.name}"
+                )            
+        else:
             logger.info(
-                f"Already have a position {position_quantity} shares. {self.instrument_info.name}"
-            )            
-
+                    f"LONG position not allowed. {self.instrument_info.name}"
+                ) 
     async def get_last_price(self) -> float:
         """
         Get last price of the instrument.
